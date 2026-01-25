@@ -1,0 +1,119 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Event Registration module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function event_registration_schema() {
+  $schema['event_registration_config'] = [
+    'description' => 'Stores event configuration details.',
+    'fields' => [
+      'id' => [
+        'description' => 'The primary identifier for the event.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_name' => [
+        'description' => 'The name of the event.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'event_category' => [
+        'description' => 'The category of the event.',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ],
+      'registration_start_date' => [
+        'description' => 'The registration start date (YYYY-MM-DD).',
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+      ],
+      'registration_end_date' => [
+        'description' => 'The registration end date (YYYY-MM-DD).',
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+      ],
+      'event_date' => [
+        'description' => 'The actual date of the event (YYYY-MM-DD).',
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  $schema['event_registration_data'] = [
+    'description' => 'Stores user registration data for events.',
+    'fields' => [
+      'id' => [
+        'description' => 'The primary identifier for the registration.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_id' => [
+        'description' => 'The ID of the event (Foreign Key).',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'full_name' => [
+        'description' => 'Full name of the registrant.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'email' => [
+        'description' => 'Email address of the registrant.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'college_name' => [
+        'description' => 'College name of the registrant.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'department' => [
+        'description' => 'Department of the registrant.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'event_category' => [
+        'description' => 'The category of the event (Cached for easy access).',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'description' => 'Timestamp when the registration was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'foreign keys' => [
+      'event_fk' => [
+        'table' => 'event_registration_config',
+        'columns' => ['event_id' => 'id'],
+      ],
+    ],
+    'indexes' => [
+      'email_event' => ['email', 'event_id'],
+    ],
+  ];
+
+  return $schema;
+}

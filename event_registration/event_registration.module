@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for Event Registration module.
+ */
+
+/**
+ * Implements hook_mail().
+ */
+function event_registration_mail($key, &$message, $params) {
+  $options = array(
+    'langcode' => $message['langcode'],
+  );
+
+  switch ($key) {
+    case 'registration_confirmation':
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+      $message['subject'] = t('Event Registration Confirmation: @event', ['@event' => $params['event_name']], $options);
+      $message['body'][] = $params['message'];
+      break;
+    
+    case 'admin_notification':
+        $message['from'] = \Drupal::config('system.site')->get('mail');
+        $message['subject'] = t('New Event Registration: @event', ['@event' => $params['event_name']], $options);
+        $message['body'][] = $params['message'];
+        break;
+  }
+}

@@ -1,0 +1,4 @@
+event_registration.admin_listing:
+  title: 'Access Event Registration Admin Listing'
+  description: 'Allows access to the admin page listing all event registrations.'
+  restrict access: true

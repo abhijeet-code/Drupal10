@@ -1,0 +1,5 @@
+name: 'Event Registration'
+type: module
+description: 'A custom module for event registration with admin configuration and AJAX forms.'
+core_version_requirement: ^10
+package: Custom
