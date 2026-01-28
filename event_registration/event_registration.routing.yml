@@ -29,3 +29,10 @@ event_registration.admin_list:
     _title: 'Event Registrations'
   requirements:
     _permission: 'event_registration.admin_listing'
+
+event_registration.export_csv:
+  path: '/admin/reports/event-registrations/export'
+  defaults:
+    _controller: '\Drupal\event_registration\Controller\RegistrationController::exportCsv'
+  requirements:
+    _permission: 'event_registration.admin_listing'
