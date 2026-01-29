@@ -3,12 +3,11 @@
 namespace Drupal\event_registration\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Database\Connection;
+use Drupal\Core\Url;
+use Drupal\event_registration\Service\EventRegistrationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\HtmlCommand;
 
 /**
  * Controller for the admin registration listing.
@@ -16,20 +15,20 @@ use Drupal\Core\Ajax\HtmlCommand;
 class RegistrationController extends ControllerBase {
 
   /**
-   * The database connection.
+   * The event registration service.
    *
-   * @var \Drupal\Core\Database\Connection
+   * @var \Drupal\event_registration\Service\EventRegistrationService
    */
-  protected $database;
+  protected $eventService;
 
   /**
    * Constructs a new RegistrationController.
    *
-   * @param \Drupal\Core\Database\Connection $database
-   *   The database connection.
+   * @param \Drupal\event_registration\Service\EventRegistrationService $event_service
+   *   The event registration service.
    */
-  public function __construct(Connection $database) {
-    $this->database = $database;
+  public function __construct(EventRegistrationService $event_service) {
+    $this->eventService = $event_service;
   }
 
   /**
@@ -37,7 +36,7 @@ class RegistrationController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('database')
+      $container->get('event_registration.service')
     );
   }
 
@@ -47,7 +46,7 @@ class RegistrationController extends ControllerBase {
   public function content(Request $request) {
     $build = [];
 
-    $event_dates = $this->getEventDates();
+    $event_dates = $this->eventService->getAllEventDates();
     $selected_date = $request->query->get('event_date', '');
     $selected_event = $request->query->get('event_name', '');
 
@@ -69,7 +68,7 @@ class RegistrationController extends ControllerBase {
 
     $event_names = [];
     if ($selected_date) {
-      $event_names = $this->getEventNamesByDate($selected_date);
+      $event_names = $this->eventService->getEventNamesByDate($selected_date);
     }
 
     $build['filters']['event_name'] = [
@@ -91,18 +90,16 @@ class RegistrationController extends ControllerBase {
     $build['filters']['export'] = [
       '#type' => 'link',
       '#title' => $this->t('Export as CSV'),
-      '#url' => \Drupal\Core\Url::fromRoute('event_registration.export_csv', [], ['query' => $request->query->all()]),
+      '#url' => Url::fromRoute('event_registration.export_csv', [], ['query' => $request->query->all()]),
       '#attributes' => ['class' => ['button']],
     ];
 
-    // Get participant count
-    $count = $this->getParticipantCount($selected_date, $selected_event);
+    $count = $this->eventService->getParticipantCount($selected_date, $selected_event);
     $build['count'] = [
       '#markup' => '<p><strong>' . $this->t('Total Participants: @count', ['@count' => $count]) . '</strong></p>',
     ];
 
-    // Build registrations table
-    $registrations = $this->getRegistrations($selected_date, $selected_event);
+    $registrations = $this->eventService->getRegistrations($selected_date, $selected_event);
 
     $header = [
       $this->t('Name'),
@@ -143,7 +140,7 @@ class RegistrationController extends ControllerBase {
     $selected_date = $request->query->get('event_date', '');
     $selected_event = $request->query->get('event_name', '');
 
-    $registrations = $this->getRegistrations($selected_date, $selected_event);
+    $registrations = $this->eventService->getRegistrations($selected_date, $selected_event);
 
     $response = new StreamedResponse(function () use ($registrations) {
       $handle = fopen('php://output', 'w');
@@ -170,66 +167,6 @@ class RegistrationController extends ControllerBase {
     $response->headers->set('Content-Disposition', 'attachment; filename="registrations.csv"');
 
     return $response;
-  }
-
-  /**
-   * Helper to get all event dates.
-   */
-  protected function getEventDates() {
-    $query = $this->database->select('event_registration_config', 'c');
-    $query->fields('c', ['event_date']);
-    $query->distinct();
-    $query->orderBy('event_date', 'DESC');
-    return $query->execute()->fetchAllKeyed(0, 0);
-  }
-
-  /**
-   * Helper to get event names by date.
-   */
-  protected function getEventNamesByDate($date) {
-    $query = $this->database->select('event_registration_config', 'c');
-    $query->fields('c', ['id', 'event_name']);
-    $query->condition('event_date', $date);
-    return $query->execute()->fetchAllKeyed();
-  }
-
-  /**
-   * Helper to get participant count.
-   */
-  protected function getParticipantCount($date = '', $event_id = '') {
-    $query = $this->database->select('event_registration_data', 'd');
-    $query->join('event_registration_config', 'c', 'd.event_id = c.id');
-
-    if ($date) {
-      $query->condition('c.event_date', $date);
-    }
-    if ($event_id) {
-      $query->condition('d.event_id', $event_id);
-    }
-
-    return $query->countQuery()->execute()->fetchField();
-  }
-
-  /**
-   * Helper to get registrations.
-   */
-  protected function getRegistrations($date = '', $event_id = '') {
-    $query = $this->database->select('event_registration_data', 'd');
-    $query->join('event_registration_config', 'c', 'd.event_id = c.id');
-    $query->fields('d', ['full_name', 'email', 'college_name', 'department', 'event_category', 'created']);
-    $query->addField('c', 'event_date');
-    $query->addField('c', 'event_name');
-
-    if ($date) {
-      $query->condition('c.event_date', $date);
-    }
-    if ($event_id) {
-      $query->condition('d.event_id', $event_id);
-    }
-
-    $query->orderBy('d.created', 'DESC');
-
-    return $query->execute()->fetchAll();
   }
 
 }
