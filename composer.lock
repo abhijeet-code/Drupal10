@@ -1,0 +1,17 @@
+{
+    "_readme": [
+        "This file locks the dependencies of the project.",
+        "Run composer install to install them."
+    ],
+    "content-hash": "placeholder",
+    "packages": [],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": true,
+    "prefer-lowest": false,
+    "platform": {},
+    "platform-dev": {},
+    "plugin-api-version": "2.3.0"
+}

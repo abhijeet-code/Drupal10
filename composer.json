@@ -1,0 +1,9 @@
+{
+    "name": "drupal/event_registration",
+    "description": "A custom Drupal 10 module for event registration with admin configuration and AJAX forms.",
+    "type": "drupal-custom-module",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "drupal/core": "^10"
+    }
+}
