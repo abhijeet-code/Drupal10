@@ -4,6 +4,7 @@ namespace Drupal\event_registration\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
+use Drupal\Core\Render\Markup;
 use Drupal\event_registration\Service\EventRegistrationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -50,48 +51,59 @@ class RegistrationController extends ControllerBase {
     $selected_date = $request->query->get('event_date', '');
     $selected_event = $request->query->get('event_name', '');
 
-    $build['filters'] = [
-      '#type' => 'container',
-      '#attributes' => ['id' => 'filter-wrapper'],
-    ];
-
-    $build['filters']['event_date'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Event Date'),
-      '#options' => ['' => $this->t('- All Dates -')] + $event_dates,
-      '#default_value' => $selected_date,
-      '#attributes' => [
-        'id' => 'filter-event-date',
-        'onchange' => 'this.form.submit()',
-      ],
-    ];
-
+    // Get event names if a date is selected
     $event_names = [];
     if ($selected_date) {
       $event_names = $this->eventService->getEventNamesByDate($selected_date);
     }
 
-    $build['filters']['event_name'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Event Name'),
-      '#options' => ['' => $this->t('- All Events -')] + $event_names,
-      '#default_value' => $selected_event,
-      '#attributes' => [
-        'id' => 'filter-event-name',
-        'onchange' => 'this.form.submit()',
+    $current_path = Url::fromRoute('event_registration.admin_list')->toString();
+    $export_url = Url::fromRoute('event_registration.export_csv', [], ['query' => $request->query->all()])->toString();
+
+    // Use inline_template to render raw HTML
+    $build['filters'] = [
+      '#type' => 'inline_template',
+      '#template' => '
+        <form method="get" action="{{ current_path }}" id="filter-form">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px; background: #fff; padding: 20px; border: 1px solid #dedede; border-radius: 4px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="display: flex; flex-direction: column;">
+              <label for="event_date" style="font-weight: bold; margin-bottom: 5px; color: #333;">{{ date_label }}</label>
+              <select name="event_date" id="event_date" style="padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; min-width: 160px; height: 38px;" onchange="document.getElementById(\'event_name\').value=\'\'; this.form.submit();">
+                <option value="">{{ all_dates }}</option>
+                {% for date in event_dates %}
+                  <option value="{{ date }}"{% if date == selected_date %} selected{% endif %}>{{ date }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              <label for="event_name" style="font-weight: bold; margin-bottom: 5px; color: #333;">{{ name_label }}</label>
+              <select name="event_name" id="event_name" style="padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; min-width: 160px; height: 38px;" onchange="this.form.submit();">
+                <option value="">{{ all_events }}</option>
+                {% for id, name in event_names %}
+                  <option value="{{ id }}"{% if id == selected_event %} selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button type="submit" class="button button--primary" style="height: 38px; padding: 0 20px; font-weight: bold; cursor: pointer;">{{ filter_label }}</button>
+              <a href="{{ export_url }}" class="button" style="height: 38px; padding: 0 20px; line-height: 36px; text-decoration: none; border: 1px solid #ccc; background: #f5f5f5; color: #333; font-weight: bold; border-radius: 4px; box-sizing: border-box; display: inline-block;">{{ export_label }}</a>
+            </div>
+          </div>
+        </form>',
+      '#context' => [
+        'current_path' => $current_path,
+        'date_label' => $this->t('Event Date'),
+        'name_label' => $this->t('Event Name'),
+        'all_dates' => $this->t('- All Dates -'),
+        'all_events' => $this->t('- All Events -'),
+        'filter_label' => $this->t('Filter'),
+        'export_label' => $this->t('Export as CSV'),
+        'export_url' => $export_url,
+        'event_dates' => $event_dates,
+        'event_names' => $event_names,
+        'selected_date' => $selected_date,
+        'selected_event' => $selected_event,
       ],
-    ];
-
-    $build['filters']['submit'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Filter'),
-    ];
-
-    $build['filters']['export'] = [
-      '#type' => 'link',
-      '#title' => $this->t('Export as CSV'),
-      '#url' => Url::fromRoute('event_registration.export_csv', [], ['query' => $request->query->all()]),
-      '#attributes' => ['class' => ['button']],
     ];
 
     $count = $this->eventService->getParticipantCount($selected_date, $selected_event);
